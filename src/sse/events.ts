@@ -47,7 +47,7 @@ export function buildSseEvent<TFields extends object>(
 }
 
 export function buildReasoningSummaryText(title: string, content: string): string {
-  return `**${title}**\n\n${content}`;
+  return `**${title}**\n\n${content}\n\n`;
 }
 
 export function buildReasoningItem({
