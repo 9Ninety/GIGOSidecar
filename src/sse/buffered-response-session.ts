@@ -690,7 +690,6 @@ export class BufferedResponseSession {
 
     if (type === SseEventType.OutputItemAdded && getItemType(json) === "message") {
       this.captureMessageItem(json);
-      this.startMockReasoning();
       return true;
     }
 
@@ -702,26 +701,39 @@ export class BufferedResponseSession {
     if (type === SseEventType.OutputTextDelta) {
       const outputText = this.captureOutputText(json);
       this.bufferedAnswer.text += outputText.delta ?? "";
-      this.startMockReasoning();
+
+      if ((outputText.delta ?? "").length > 0) {
+        this.startMockReasoning();
+      }
+
       return true;
     }
 
     if (type === SseEventType.OutputTextDone) {
       const outputText = this.captureOutputText(json);
       this.bufferedAnswer.text = outputText.text ?? this.bufferedAnswer.text;
+
+      if (this.bufferedAnswer.text.length > 0) {
+        this.startMockReasoning();
+      }
+
       this.markBufferedAnswerComplete();
       return true;
     }
 
     if (type === SseEventType.ContentPartAdded) {
       this.captureContentPart(json);
-      this.startMockReasoning();
       return true;
     }
 
     if (type === SseEventType.ContentPartDone) {
       const contentPart = this.captureContentPart(json);
       this.bufferedAnswer.text = contentPart.text ?? this.bufferedAnswer.text;
+
+      if (this.bufferedAnswer.text.length > 0) {
+        this.startMockReasoning();
+      }
+
       return true;
     }
 
@@ -733,7 +745,6 @@ export class BufferedResponseSession {
     if (isBufferedAnswerEvent(type, json)) {
       if (!this.bufferedAnswer.started) {
         this.bufferedAnswer.started = true;
-        this.startMockReasoning();
       }
 
       return true;
@@ -743,6 +754,7 @@ export class BufferedResponseSession {
   }
 
   private emitOutputTextDelta(delta: string): void {
+    this.ensureBufferedAnswerEnvelope();
     this.writeSse(
       buildSseEvent(SseEventType.OutputTextDelta, {
         item_id: this.bufferedAnswer.itemId,
@@ -778,8 +790,6 @@ export class BufferedResponseSession {
     );
 
     try {
-      this.ensureBufferedAnswerEnvelope();
-
       for await (const delta of this.rewriteTextStream({
         input: this.bufferedAnswer.text,
         apiBase: this.polishApiBase,
@@ -822,6 +832,7 @@ export class BufferedResponseSession {
       status: "completed",
       phase: this.bufferedAnswer.phase,
     });
+    this.ensureBufferedAnswerEnvelope();
     const outputIndex = this.ensureBufferedAnswerOutputIndex();
 
     this.writeSse(
