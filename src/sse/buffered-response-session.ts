@@ -187,6 +187,10 @@ function getCompletedAt(response: JsonObject | null): number {
     : Math.floor(Date.now() / 1_000);
 }
 
+function getNowSeconds(): number {
+  return Date.now() / 1_000;
+}
+
 function getResponseOutput(response: JsonObject | null): unknown[] {
   return Array.isArray(response?.output) ? [...response.output] : [];
 }
@@ -388,13 +392,17 @@ export class BufferedResponseSession {
       return null;
     }
 
+    const startedAt = this.mockReasoning.startedAt ?? getNowSeconds();
+    const endedAt = this.mockReasoning.endedAt ?? undefined;
+
     return buildReasoningItem({
       itemId: this.mockReasoning.itemId,
       summary: this.mockReasoning.summaries,
       status: "completed",
-      startedAt: this.mockReasoning.startedAt ?? Math.floor(Date.now() / 1_000),
-      ...(this.mockReasoning.endedAt !== null
-        ? { endedAt: this.mockReasoning.endedAt }
+      startedAt,
+      ...(endedAt !== undefined ? { endedAt } : {}),
+      ...(endedAt !== undefined
+        ? { duration: Math.max(0, Math.floor(endedAt - startedAt)) }
         : {}),
     });
   }
@@ -405,7 +413,7 @@ export class BufferedResponseSession {
     }
 
     this.mockReasoning.done = true;
-    this.mockReasoning.endedAt ??= Math.floor(Date.now() / 1_000);
+    this.mockReasoning.endedAt ??= getNowSeconds();
     this.writeSse(
       buildSseEvent(SseEventType.OutputItemDone, {
         item: this.getCompletedMockReasoningItem(),
@@ -529,7 +537,7 @@ export class BufferedResponseSession {
 
     if (!this.mockReasoning.started) {
       this.mockReasoning.started = true;
-      this.mockReasoning.startedAt = Math.floor(Date.now() / 1_000);
+      this.mockReasoning.startedAt = getNowSeconds();
       this.writeSse(
         buildSseEvent(SseEventType.OutputItemAdded, {
           item: buildReasoningItem({

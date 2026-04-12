@@ -14,6 +14,7 @@ export interface ReasoningItem {
   status: "in_progress" | "completed";
   started_at: number;
   ended_at?: number;
+  duration?: number;
   encrypted_content?: string;
 }
 
@@ -56,6 +57,7 @@ export function buildReasoningItem({
   status = "in_progress",
   startedAt,
   endedAt,
+  duration,
   encryptedContent,
 }: {
   itemId: string;
@@ -63,6 +65,7 @@ export function buildReasoningItem({
   status?: ReasoningItem["status"];
   startedAt: number;
   endedAt?: number;
+  duration?: number;
   encryptedContent?: string;
 }): ReasoningItem {
   return {
@@ -72,6 +75,7 @@ export function buildReasoningItem({
     status,
     started_at: startedAt,
     ...(endedAt !== undefined ? { ended_at: endedAt } : {}),
+    ...(duration !== undefined ? { duration } : {}),
     ...(encryptedContent ? { encrypted_content: encryptedContent } : {}),
   };
 }
