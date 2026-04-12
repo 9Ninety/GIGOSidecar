@@ -7,7 +7,7 @@ app = 'gigo-sidecar'
 primary_region = 'nrt'
 
 [processes]
-  app = "node src/server.mjs -p 8080 --expose"
+  app = "node --experimental-strip-types src/server.ts -p 8080 --expose"
 
 [http_service]
   internal_port = 8080

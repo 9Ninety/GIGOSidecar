@@ -1,6 +1,6 @@
 # GIGO Sidecar
 
-A lightweight SSE (Server-Sent Events) proxy server that intercepts upstream responses, buffers answer text, and polishes content via LLM.
+A lightweight SSE (Server-Sent Events) proxy server written in TypeScript. It intercepts upstream responses, buffers answer text, and polishes content via LLM.
 
 ## Features
 
@@ -60,13 +60,13 @@ TEST_PROMPT="Explain how IPC works in Electron"
 3. Start the server:
 
 ```bash
-node src/server.mjs
+node --experimental-strip-types src/server.ts
 ```
 
 The server will start on port 8080 by default. You can customize with:
 
 ```bash
-node src/server.mjs --port 3000 --expose
+node --experimental-strip-types src/server.ts --port 3000 --expose
 ```
 
 ### Testing
@@ -74,7 +74,14 @@ node src/server.mjs --port 3000 --expose
 Run the SSE test against a running server:
 
 ```bash
-node tests/sse-test.mjs 8080
+node --experimental-strip-types tests/sse-test.ts 8080
+```
+
+Optional type-check setup:
+
+```bash
+npm install
+npm run typecheck
 ```
 
 ## Fly.io Deployment

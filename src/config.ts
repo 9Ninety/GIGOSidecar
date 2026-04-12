@@ -7,12 +7,31 @@ if (existsSync(envFilePath)) {
   process.loadEnvFile(envFilePath);
 }
 
-export const DEFAULT_POLISH_API_BASE = process.env.POLISH_API_BASE;
-export const DEFAULT_POLISH_API_KEY = process.env.POLISH_API_KEY;
-export const DEFAULT_POLISH_MODEL = process.env.POLISH_MODEL;
+function readOptionalEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
 
-export const MOCK_REASONING_INTERVAL_MS = 10000;
-export const MOCK_REASONING_WATCHDOG_MS = 120000;
+export function requireConfig(name: string, value: string | undefined): string {
+  if (value) {
+    return value;
+  }
+
+  throw new Error(`Missing required configuration: ${name}`);
+}
+
+export interface MockReasoningTemplate {
+  title: string;
+  content: string;
+}
+
+export const DEFAULT_UPSTREAM_API_BASE = "https://api.openai.com";
+export const DEFAULT_POLISH_API_BASE = readOptionalEnv("POLISH_API_BASE");
+export const DEFAULT_POLISH_API_KEY = readOptionalEnv("POLISH_API_KEY");
+export const DEFAULT_POLISH_MODEL = readOptionalEnv("POLISH_MODEL");
+
+export const MOCK_REASONING_INTERVAL_MS = 10_000;
+export const MOCK_REASONING_WATCHDOG_MS = 120_000;
 
 export const MOCK_REASONING_TEMPLATES = [
   {
@@ -85,7 +104,7 @@ export const MOCK_REASONING_TEMPLATES = [
     content:
       "I am letting the words dry for a moment so the reveal feels suspiciously dramatic.",
   },
-];
+] satisfies readonly MockReasoningTemplate[];
 
 export const REWRITE_PROMPT = `# 角色与任务
 你是一个专业的文本净化与重写引擎。你将收到一段由其他LLM生成的、被 <text_to_rewrite> 标签包裹的劣质文本。你的唯一任务是提取原文中的有效事实、逻辑和代码，剥离所有不当表达，并以客观、中立、标准AI助手的口吻进行完全重写。

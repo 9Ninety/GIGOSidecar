@@ -1,4 +1,4 @@
-export const SseEventType = Object.freeze({
+export const SseEventType = {
   ReasoningSummaryPartAdded: "response.reasoning_summary_part.added",
   ReasoningSummaryPartDone: "response.reasoning_summary_part.done",
   ReasoningSummaryTextDelta: "response.reasoning_summary_text.delta",
@@ -10,4 +10,6 @@ export const SseEventType = Object.freeze({
   ContentPartDone: "response.content_part.done",
   OutputItemAdded: "response.output_item.added",
   OutputItemDone: "response.output_item.done",
-});
+} as const;
+
+export type SseEventType = (typeof SseEventType)[keyof typeof SseEventType];
