@@ -1,6 +1,4 @@
-import { existsSync } from "node:fs";
 import http from "node:http";
-import { fileURLToPath } from "node:url";
 
 import { Logger } from "../src/lib/logger.ts";
 import {
@@ -10,12 +8,6 @@ import {
 } from "../src/sse/parser.ts";
 import { SseEventType } from "../src/sse/types.ts";
 import { parseReasoningSummary } from "../src/utils/text.ts";
-
-const envFilePath = fileURLToPath(new URL("../.env.local", import.meta.url));
-
-if (existsSync(envFilePath)) {
-  process.loadEnvFile(envFilePath);
-}
 
 function parsePort(value: string): number {
   const port = Number.parseInt(value, 10);
@@ -78,7 +70,7 @@ const prompt = requireEnv("TEST_PROMPT");
 const body = JSON.stringify({
   model,
   stream: true,
-  reasoning: { effort: "high", summary: "detailed" },
+  reasoning: { effort: "low", summary: "detailed" },
   input: [{ role: "user", content: prompt }],
 });
 const url = new URL("/v1/responses", apiBase);

@@ -5,3 +5,4 @@ tests/
 .dockerignore
 Dockerfile
 fly.toml
+node_modules/

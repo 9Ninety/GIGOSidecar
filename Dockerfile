@@ -1,9 +1,9 @@
-FROM node:24-slim
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 COPY . .
 
-RUN pnpm i --prod
+RUN bun i --production
 
 EXPOSE 8080
-CMD ["node", "--experimental-strip-types", "src/server.ts", "-p", "8080", "--expose"]
+CMD ["bun", "run", "src/server.ts", "-p", "8080", "--expose"]
