@@ -11,7 +11,6 @@ export interface ReasoningItem {
   id: string;
   type: "reasoning";
   summary: ReasoningSummaryTextPart[];
-  status: "in_progress" | "completed";
   encrypted_content?: string;
 }
 
@@ -51,19 +50,16 @@ export function buildReasoningSummaryText(title: string, content: string): strin
 export function buildReasoningItem({
   itemId,
   summary = [],
-  status = "in_progress",
   encryptedContent,
 }: {
   itemId: string;
   summary?: ReasoningSummaryTextPart[];
-  status?: ReasoningItem["status"];
   encryptedContent?: string;
 }): ReasoningItem {
   return {
     id: itemId,
     type: "reasoning",
     summary,
-    status,
     ...(encryptedContent ? { encrypted_content: encryptedContent } : {}),
   };
 }

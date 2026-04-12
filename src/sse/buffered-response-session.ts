@@ -347,11 +347,6 @@ export class BufferedResponseSession {
   }
 
   private rememberEventOrdering(json: JsonObject | null): void {
-    const sequenceNumber = json?.sequence_number;
-    if (isNumber(sequenceNumber) && Number.isInteger(sequenceNumber)) {
-      this.lastSequenceNumber = Math.max(this.lastSequenceNumber, sequenceNumber);
-    }
-
     const outputIndex = json?.output_index;
     if (isNumber(outputIndex) && Number.isInteger(outputIndex)) {
       this.maxOutputIndexSeen = Math.max(this.maxOutputIndexSeen, outputIndex);
@@ -362,6 +357,28 @@ export class BufferedResponseSession {
     if (!this.res.writableEnded) {
       this.res.write(event);
     }
+  }
+
+  private serializeParsedEvent(parsed: ParsedSseBlock): string {
+    if (!parsed.type || !parsed.json) {
+      return parsed.raw;
+    }
+
+    const sequenceNumber = parsed.json.sequence_number;
+    if (!isNumber(sequenceNumber) || !Number.isInteger(sequenceNumber)) {
+      return parsed.raw;
+    }
+
+    const { type: _ignoredType, sequence_number: _ignoredSequence, ...fields } = parsed.json;
+
+    return buildSseEvent(parsed.type, {
+      ...fields,
+      sequence_number: this.nextSequenceNumber(),
+    });
+  }
+
+  writeParsedEvent(parsed: ParsedSseBlock): void {
+    this.writeSse(this.serializeParsedEvent(parsed));
   }
 
   private ensureBufferedAnswerOutputIndex(): number {
@@ -403,7 +420,6 @@ export class BufferedResponseSession {
     return buildReasoningItem({
       itemId: this.mockReasoning.itemId,
       summary: this.mockReasoning.summaries,
-      status: "completed",
     });
   }
 
@@ -541,7 +557,6 @@ export class BufferedResponseSession {
           item: buildReasoningItem({
             itemId,
             summary: [],
-            status: "in_progress",
           }),
           output_index: outputIndex,
           sequence_number: this.nextSequenceNumber(),
@@ -554,36 +569,38 @@ export class BufferedResponseSession {
       output_index: outputIndex,
       summary_index: summaryIndex,
     };
-    const deltaEvents = splitReasoningSummaryDelta(text).map((delta) => {
-      return buildSseEvent(SseEventType.ReasoningSummaryTextDelta, {
-        ...commonFields,
-        delta,
-        sequence_number: this.nextSequenceNumber(),
-      });
-    });
-
-    const events = [
+    this.writeSse(
       buildSseEvent(SseEventType.ReasoningSummaryPartAdded, {
         ...commonFields,
         part: { type: "summary_text", text: "" },
         sequence_number: this.nextSequenceNumber(),
       }),
-      ...deltaEvents,
+    );
+
+    for (const delta of splitReasoningSummaryDelta(text)) {
+      this.writeSse(
+        buildSseEvent(SseEventType.ReasoningSummaryTextDelta, {
+          ...commonFields,
+          delta,
+          sequence_number: this.nextSequenceNumber(),
+        }),
+      );
+    }
+
+    this.writeSse(
       buildSseEvent(SseEventType.ReasoningSummaryTextDone, {
         ...commonFields,
         text,
         sequence_number: this.nextSequenceNumber(),
       }),
+    );
+    this.writeSse(
       buildSseEvent(SseEventType.ReasoningSummaryPartDone, {
         ...commonFields,
         part: { type: "summary_text", text },
         sequence_number: this.nextSequenceNumber(),
       }),
-    ];
-
-    for (const event of events) {
-      this.writeSse(event);
-    }
+    );
 
     this.mockReasoning.summaries.push({ type: "summary_text", text });
   }
@@ -908,7 +925,7 @@ export class BufferedResponseSession {
     }
 
     if (this.bufferedAnswer.completedEvent) {
-      this.writeSse(this.bufferedAnswer.completedEvent.raw);
+      this.writeParsedEvent(this.bufferedAnswer.completedEvent);
     }
 
     this.logger.info(`[${this.requestId}] stream ended`);

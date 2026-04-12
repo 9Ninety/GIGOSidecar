@@ -161,9 +161,9 @@ async function pipeSseResponse({
         const parsed = parseSseBlock(rawBlock);
 
         if (!parsed.type) {
-          res.write(parsed.raw);
+          session.writeParsedEvent(parsed);
         } else if (!session.handleParsedEvent(parsed)) {
-          res.write(parsed.raw);
+          session.writeParsedEvent(parsed);
         }
       }
 
