@@ -1,0 +1,7 @@
+.git
+.cocoindex_code
+tests/
+*.md
+.dockerignore
+Dockerfile
+fly.toml
