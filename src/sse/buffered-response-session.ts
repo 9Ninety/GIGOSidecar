@@ -45,8 +45,6 @@ interface MockReasoningState {
   done: boolean;
   itemId: string;
   outputIndex: number | null;
-  startedAt: number | null;
-  endedAt: number | null;
   summaries: ReasoningSummaryTextPart[];
 }
 
@@ -187,8 +185,27 @@ function getCompletedAt(response: JsonObject | null): number {
     : Math.floor(Date.now() / 1_000);
 }
 
-function getNowSeconds(): number {
-  return Date.now() / 1_000;
+function splitReasoningSummaryDelta(text: string): string[] {
+  const chunkCount = text.length > 240 ? 3 : text.length > 120 ? 2 : 1;
+
+  if (chunkCount === 1) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+  let offset = 0;
+
+  for (let index = 0; index < chunkCount; index += 1) {
+    const remaining = text.length - offset;
+    const remainingChunks = chunkCount - index;
+    const chunkSize = Math.ceil(remaining / remainingChunks);
+    const nextOffset = offset + chunkSize;
+
+    chunks.push(text.slice(offset, nextOffset));
+    offset = nextOffset;
+  }
+
+  return chunks.filter((chunk) => chunk.length > 0);
 }
 
 function getResponseOutput(response: JsonObject | null): unknown[] {
@@ -315,8 +332,6 @@ export class BufferedResponseSession {
       done: false,
       itemId: syntheticReasoningItemId,
       outputIndex: null,
-      startedAt: null,
-      endedAt: null,
       summaries: [],
     };
 
@@ -385,18 +400,10 @@ export class BufferedResponseSession {
       return null;
     }
 
-    const startedAt = this.mockReasoning.startedAt ?? getNowSeconds();
-    const endedAt = this.mockReasoning.endedAt ?? undefined;
-
     return buildReasoningItem({
       itemId: this.mockReasoning.itemId,
       summary: this.mockReasoning.summaries,
       status: "completed",
-      startedAt,
-      ...(endedAt !== undefined ? { endedAt } : {}),
-      ...(endedAt !== undefined
-        ? { duration: Math.max(0, Math.floor(endedAt - startedAt)) }
-        : {}),
     });
   }
 
@@ -406,7 +413,6 @@ export class BufferedResponseSession {
     }
 
     this.mockReasoning.done = true;
-    this.mockReasoning.endedAt ??= getNowSeconds();
     this.writeSse(
       buildSseEvent(SseEventType.OutputItemDone, {
         item: this.getCompletedMockReasoningItem(),
@@ -530,14 +536,12 @@ export class BufferedResponseSession {
 
     if (!this.mockReasoning.started) {
       this.mockReasoning.started = true;
-      this.mockReasoning.startedAt = getNowSeconds();
       this.writeSse(
         buildSseEvent(SseEventType.OutputItemAdded, {
           item: buildReasoningItem({
             itemId,
             summary: [],
             status: "in_progress",
-            startedAt: this.mockReasoning.startedAt,
           }),
           output_index: outputIndex,
           sequence_number: this.nextSequenceNumber(),
@@ -550,6 +554,13 @@ export class BufferedResponseSession {
       output_index: outputIndex,
       summary_index: summaryIndex,
     };
+    const deltaEvents = splitReasoningSummaryDelta(text).map((delta) => {
+      return buildSseEvent(SseEventType.ReasoningSummaryTextDelta, {
+        ...commonFields,
+        delta,
+        sequence_number: this.nextSequenceNumber(),
+      });
+    });
 
     const events = [
       buildSseEvent(SseEventType.ReasoningSummaryPartAdded, {
@@ -557,11 +568,7 @@ export class BufferedResponseSession {
         part: { type: "summary_text", text: "" },
         sequence_number: this.nextSequenceNumber(),
       }),
-      buildSseEvent(SseEventType.ReasoningSummaryTextDelta, {
-        ...commonFields,
-        delta: text,
-        sequence_number: this.nextSequenceNumber(),
-      }),
+      ...deltaEvents,
       buildSseEvent(SseEventType.ReasoningSummaryTextDone, {
         ...commonFields,
         text,
