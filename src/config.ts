@@ -7,17 +7,12 @@ if (existsSync(envFilePath)) {
   process.loadEnvFile(envFilePath);
 }
 
-function readOptionalEnv(name: string): string | undefined {
+export function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
-  return value ? value : undefined;
-}
-
-export function requireConfig(name: string, value: string | undefined): string {
   if (value) {
     return value;
   }
-
-  throw new Error(`Missing required configuration: ${name}`);
+  throw new Error(`Missing required environment variable: ${name}`);
 }
 
 export interface MockReasoningTemplate {
@@ -26,9 +21,6 @@ export interface MockReasoningTemplate {
 }
 
 export const DEFAULT_UPSTREAM_API_BASE = "https://api.openai.com";
-export const DEFAULT_POLISH_API_BASE = readOptionalEnv("POLISH_API_BASE");
-export const DEFAULT_POLISH_API_KEY = readOptionalEnv("POLISH_API_KEY");
-export const DEFAULT_POLISH_MODEL = readOptionalEnv("POLISH_MODEL");
 
 export const MOCK_REASONING_INTERVAL_MS = 10_000;
 export const MOCK_REASONING_WATCHDOG_MS = 120_000;

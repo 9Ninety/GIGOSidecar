@@ -1,7 +1,10 @@
 import type { ServerResponse } from "node:http";
 import { isNumber, isPlainObject, isString } from "es-toolkit/predicate";
 
-import type { MockReasoningTemplate } from "../config.ts";
+import {
+  type MockReasoningTemplate,
+  requireEnv,
+} from "../config.ts";
 import type { Logger } from "../lib/logger.ts";
 import type { RewriteTextStreamOptions } from "../services/polish.ts";
 import {
@@ -65,9 +68,6 @@ interface BufferedResponseSessionOptions {
   rewriteTextStream: (
     options: RewriteTextStreamOptions,
   ) => AsyncIterable<string>;
-  polishApiBase: string;
-  polishApiKey: string;
-  polishModel: string;
   mockTemplates: readonly MockReasoningTemplate[];
   mockIntervalMs: number;
   mockWatchdogMs: number;
@@ -252,13 +252,11 @@ export class BufferedResponseSession {
   private readonly rewriteTextStream: (
     options: RewriteTextStreamOptions,
   ) => AsyncIterable<string>;
-  private readonly polishApiBase: string;
-  private readonly polishApiKey: string;
-  private readonly polishModel: string;
   private readonly mockTemplates: readonly MockReasoningTemplate[];
   private readonly mockIntervalMs: number;
   private readonly mockWatchdogMs: number;
   private readonly syntheticResponseId: string;
+  private readonly polishModel: string;
   private readonly abortController = new AbortController();
 
   private readonly bufferedAnswer: BufferedAnswerState;
@@ -273,9 +271,6 @@ export class BufferedResponseSession {
     requestId,
     targetHost,
     rewriteTextStream,
-    polishApiBase,
-    polishApiKey,
-    polishModel,
     mockTemplates,
     mockIntervalMs,
     mockWatchdogMs,
@@ -292,13 +287,11 @@ export class BufferedResponseSession {
     this.requestId = requestId;
     this.targetHost = targetHost;
     this.rewriteTextStream = rewriteTextStream;
-    this.polishApiBase = polishApiBase;
-    this.polishApiKey = polishApiKey;
-    this.polishModel = polishModel;
     this.mockTemplates = mockTemplates;
     this.mockIntervalMs = mockIntervalMs;
     this.mockWatchdogMs = mockWatchdogMs;
     this.syntheticResponseId = syntheticResponseId;
+    this.polishModel = requireEnv("POLISH_MODEL");
 
     this.bufferedAnswer = {
       text: "",
@@ -794,15 +787,12 @@ export class BufferedResponseSession {
     );
 
     this.logger.info(
-      `[${this.requestId}] polish start, model=${this.polishModel} input=${this.bufferedAnswer.text.length}`,
+      `[${this.requestId}] polish start, input=${this.bufferedAnswer.text.length}`,
     );
 
     try {
       for await (const delta of this.rewriteTextStream({
         input: this.bufferedAnswer.text,
-        apiBase: this.polishApiBase,
-        apiKey: this.polishApiKey,
-        model: this.polishModel,
         signal: this.abortController.signal,
       })) {
         if (this.abortController.signal.aborted) {

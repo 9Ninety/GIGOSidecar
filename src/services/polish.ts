@@ -1,18 +1,11 @@
 import {
-  DEFAULT_POLISH_API_BASE,
-  DEFAULT_POLISH_API_KEY,
-  DEFAULT_POLISH_MODEL,
   REWRITE_PROMPT,
-  requireConfig,
+  requireEnv,
 } from "../config.ts";
 import { normalizeBaseUrl } from "../utils/url.ts";
 
 export interface RewriteTextStreamOptions {
   input: string;
-  apiBase?: string;
-  apiKey?: string;
-  model?: string;
-  prompt?: string;
   signal?: AbortSignal;
 }
 
@@ -60,28 +53,24 @@ function getResponseBody(response: Response): ReadableStream<Uint8Array> {
 
 export async function* rewriteTextStream({
   input,
-  apiBase = DEFAULT_POLISH_API_BASE,
-  apiKey = DEFAULT_POLISH_API_KEY,
-  model = DEFAULT_POLISH_MODEL,
-  prompt = REWRITE_PROMPT,
   signal,
 }: RewriteTextStreamOptions): AsyncGenerator<string> {
   if (signal?.aborted) {
     throw new Error("Polish request aborted before start");
   }
 
-  const resolvedApiBase = normalizeBaseUrl(
-    requireConfig("POLISH_API_BASE", apiBase),
-  );
-  const resolvedApiKey = requireConfig("POLISH_API_KEY", apiKey);
-  const resolvedModel = requireConfig("POLISH_MODEL", model);
+  const resolvedApiBase = normalizeBaseUrl(requireEnv("POLISH_API_BASE"));
+  const resolvedApiKey = requireEnv("POLISH_API_KEY");
+  const resolvedModel = requireEnv("POLISH_MODEL");
+  const resolvedPrompt = REWRITE_PROMPT;
+
   const response = await fetch(`${resolvedApiBase}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${resolvedApiKey}`,
     },
-    body: buildRewritePayload({ input, model: resolvedModel, prompt }),
+    body: buildRewritePayload({ input, model: resolvedModel, prompt: resolvedPrompt }),
     signal: signal ?? null,
   });
 

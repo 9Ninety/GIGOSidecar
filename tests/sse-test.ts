@@ -3,7 +3,11 @@ import http from "node:http";
 import { fileURLToPath } from "node:url";
 
 import { Logger } from "../src/lib/logger.ts";
-import { type JsonObject, normalizeSseChunk, parseSseBlock } from "../src/sse/parser.ts";
+import {
+  type JsonObject,
+  normalizeSseChunk,
+  parseSseBlock,
+} from "../src/sse/parser.ts";
 import { SseEventType } from "../src/sse/types.ts";
 import { parseReasoningSummary } from "../src/utils/text.ts";
 
@@ -46,7 +50,9 @@ function getString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function printReasoningSummary(part: ReturnType<typeof parseReasoningSummary>): void {
+function printReasoningSummary(
+  part: ReturnType<typeof parseReasoningSummary>,
+): void {
   if (!part) {
     return;
   }

@@ -9,13 +9,10 @@ import https from "node:https";
 import { parseArgs } from "node:util";
 
 import {
-  DEFAULT_POLISH_API_KEY,
-  DEFAULT_POLISH_MODEL,
   DEFAULT_UPSTREAM_API_BASE,
   MOCK_REASONING_INTERVAL_MS,
   MOCK_REASONING_TEMPLATES,
   MOCK_REASONING_WATCHDOG_MS,
-  requireConfig,
 } from "./config.ts";
 import { Logger } from "./lib/logger.ts";
 import { rewriteTextStream } from "./services/polish.ts";
@@ -36,8 +33,6 @@ interface RuntimeConfig {
   port: number;
   target: string;
   targetUrl: URL;
-  polishApiBase: string;
-  polishModel: string;
   client: typeof http | typeof https;
 }
 
@@ -94,14 +89,6 @@ function getHeaderValue(value: string | string[] | undefined): string {
   return value ?? "";
 }
 
-function getBearerToken(
-  authorization: string | string[] | undefined,
-): string | undefined {
-  const headerValue = getHeaderValue(authorization);
-  const match = headerValue.match(/^Bearer\s+(.+)$/i);
-  return match?.[1]?.trim() || undefined;
-}
-
 function requireRequestPath(req: IncomingMessage): string {
   if (!req.url) {
     throw new Error("Incoming request URL is missing");
@@ -119,10 +106,6 @@ function resolveRuntimeConfig(cli: CliOptions): RuntimeConfig {
     port: parsePort(cli.port),
     target,
     targetUrl,
-    polishApiBase: normalizeBaseUrl(
-      process.env.POLISH_API_BASE?.trim() || new URL("/v1", targetUrl).toString(),
-    ),
-    polishModel: requireConfig("POLISH_MODEL", DEFAULT_POLISH_MODEL),
     client: targetUrl.protocol === "https:" ? https : http,
   };
 }
@@ -132,31 +115,20 @@ function createSession({
   res,
   requestId,
   targetHost,
-  polishApiBase,
-  polishModel,
   logger,
 }: {
   req: IncomingMessage;
   res: ServerResponse;
   requestId: string;
   targetHost: string;
-  polishApiBase: string;
-  polishModel: string;
   logger: Logger;
 }): BufferedResponseSession {
-  const polishApiKey =
-    getBearerToken(req.headers.authorization) ??
-    requireConfig("POLISH_API_KEY or Authorization header", DEFAULT_POLISH_API_KEY);
-
   return new BufferedResponseSession({
     res,
     logger,
     requestId,
     targetHost,
     rewriteTextStream,
-    polishApiBase,
-    polishApiKey,
-    polishModel,
     mockTemplates: MOCK_REASONING_TEMPLATES,
     mockIntervalMs: MOCK_REASONING_INTERVAL_MS,
     mockWatchdogMs: MOCK_REASONING_WATCHDOG_MS,
@@ -278,8 +250,6 @@ function startServer(): void {
             res,
             requestId,
             targetHost: runtime.targetUrl.hostname,
-            polishApiBase: runtime.polishApiBase,
-            polishModel: runtime.polishModel,
             logger,
           });
 
