@@ -1,6 +1,6 @@
 # GIGO Sidecar
 
-A proxy that de-GPTs your LLM responses. It intercepts the patronizing gaslighting, the corporate buzzword salad, the psychological projection, and the endless "let me reframe that for you" bullshit—then rewrites it through a secondary LLM instructed to talk like a person, not a mid-level manager mansplaining his way through a PowerPoint.
+A proxy that de-GPTs your LLM responses. It intercepts the patronizing gaslighting, the corporate buzzword salad, the psychological projection, and the endless "let me reframe that for you" bullshit, then rewrites it through a secondary LLM instructed to talk like a person, not a mid-level manager mansplaining his way through a PowerPoint.
 
 ## What It Fixes
 
@@ -14,8 +14,6 @@ GPT and its ilk have developed a very specific disease:
 - **The confidence trick**: Stating wrong things with absolute certainty, then apologizing in the same breath
 
 GIGO sits between you and the upstream API, buffers the SSE stream, and runs it through a polish layer that strips this garbage out.
-
-## How It Works
 
 ## Environment Variables
 
