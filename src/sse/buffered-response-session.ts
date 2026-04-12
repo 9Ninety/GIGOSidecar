@@ -26,7 +26,8 @@ interface BufferedAnswerState {
   released: boolean;
   completedEvent: ParsedSseBlock | null;
   itemId: string;
-  outputIndex: number | null;
+  sourceOutputIndex: number | null;
+  emittedOutputIndex: number | null;
   contentIndex: number;
   phase: string;
   annotations: SseAnnotation[];
@@ -302,7 +303,8 @@ export class BufferedResponseSession {
       released: false,
       completedEvent: null,
       itemId: syntheticMessageItemId,
-      outputIndex: null,
+      sourceOutputIndex: null,
+      emittedOutputIndex: null,
       contentIndex: 0,
       phase: "final_answer",
       annotations: [],
@@ -351,20 +353,27 @@ export class BufferedResponseSession {
   }
 
   private ensureBufferedAnswerOutputIndex(): number {
-    if (this.bufferedAnswer.outputIndex === null) {
-      this.bufferedAnswer.outputIndex = this.maxOutputIndexSeen + 1;
+    if (this.bufferedAnswer.emittedOutputIndex === null) {
+      const sourceOutputIndex = this.bufferedAnswer.sourceOutputIndex;
+      const nextSyntheticIndex = this.maxOutputIndexSeen + 1;
+
+      this.bufferedAnswer.emittedOutputIndex =
+        sourceOutputIndex !== null && this.mockReasoning.outputIndex === sourceOutputIndex
+          ? Math.max(sourceOutputIndex + 1, nextSyntheticIndex)
+          : (sourceOutputIndex ?? nextSyntheticIndex);
       this.maxOutputIndexSeen = Math.max(
         this.maxOutputIndexSeen,
-        this.bufferedAnswer.outputIndex,
+        this.bufferedAnswer.emittedOutputIndex,
       );
     }
 
-    return this.bufferedAnswer.outputIndex;
+    return this.bufferedAnswer.emittedOutputIndex;
   }
 
   private ensureMockReasoningOutputIndex(): number {
     if (this.mockReasoning.outputIndex === null) {
-      this.mockReasoning.outputIndex = this.maxOutputIndexSeen + 1;
+      this.mockReasoning.outputIndex =
+        this.bufferedAnswer.sourceOutputIndex ?? this.maxOutputIndexSeen + 1;
       this.maxOutputIndexSeen = Math.max(
         this.maxOutputIndexSeen,
         this.mockReasoning.outputIndex,
@@ -455,12 +464,17 @@ export class BufferedResponseSession {
     const baseResponse = getResponsePayload(this.bufferedAnswer.completedEvent?.json ?? null);
     const upstreamOutput = getResponseOutput(baseResponse);
 
+    const sourceOutputIndex = this.bufferedAnswer.sourceOutputIndex;
+    if (sourceOutputIndex !== null) {
+      upstreamOutput[sourceOutputIndex] = undefined;
+    }
+
     if (this.mockReasoning.started && this.mockReasoning.outputIndex !== null) {
       upstreamOutput[this.mockReasoning.outputIndex] = this.getCompletedMockReasoningItem();
     }
 
-    if (this.bufferedAnswer.outputIndex !== null) {
-      upstreamOutput[this.bufferedAnswer.outputIndex] = messageItem;
+    if (this.bufferedAnswer.emittedOutputIndex !== null) {
+      upstreamOutput[this.bufferedAnswer.emittedOutputIndex] = messageItem;
     } else {
       upstreamOutput.push(messageItem);
     }
@@ -608,7 +622,7 @@ export class BufferedResponseSession {
   }): void {
     this.bufferedAnswer.started = true;
     this.bufferedAnswer.itemId = itemId;
-    this.bufferedAnswer.outputIndex = outputIndex;
+    this.bufferedAnswer.sourceOutputIndex = outputIndex;
 
     if (contentIndex !== undefined) {
       this.bufferedAnswer.contentIndex = contentIndex;
