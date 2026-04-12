@@ -1,25 +1,32 @@
 # GIGO Sidecar
 
-A lightweight SSE (Server-Sent Events) proxy server written in TypeScript. It intercepts upstream responses, buffers answer text, and polishes content via LLM.
+A proxy that de-GPTs your LLM responses. It intercepts the patronizing gaslighting, the corporate buzzword salad, the psychological projection, and the endless "let me reframe that for you" bullshit—then rewrites it through a secondary LLM instructed to talk like a person, not a mid-level manager mansplaining his way through a PowerPoint.
 
-## Features
+## What It Fixes
 
-- **SSE Proxy**: Intercepts upstream SSE streams and processes them in real-time
-- **Content Polishing**: Enhances responses using configurable LLM backends
-- **Reasoning Simulation**: Provides mock reasoning templates for better UX
-- **Environment-Based Configuration**: All settings configurable via environment variables
-- **Fly.io Ready**: Optimized for deployment on Fly.io platform
+GPT and its ilk have developed a very specific disease:
+
+- **Gaslighting**: "You're not actually tired, you're experiencing 'energy allocation imbalance'"
+- **Mansplaining**: "What you're really asking is..." (no, it isn't)
+- **Corporate cosplay**: "Let's align on the core value proposition" instead of "here's what this does"
+- **Fake empathy**: "I understand you might be feeling..." followed by completely missing the point
+- **Bullet-point manifestos**: Taking 500 words to say what needs 50
+- **The confidence trick**: Stating wrong things with absolute certainty, then apologizing in the same breath
+
+GIGO sits between you and the upstream API, buffers the SSE stream, and runs it through a polish layer that strips this garbage out.
+
+## How It Works
 
 ## Environment Variables
 
 ### Upstream API Configuration
 
-| Variable            | Description                        | Default                     |
-| ------------------- | ---------------------------------- | --------------------------- |
-| `UPSTREAM_API_BASE` | Upstream API base URL              | `https://api.openai.com`    |
-| `POLISH_API_BASE`   | Base URL for the polishing service | Same as `UPSTREAM_API_BASE` |
-| `POLISH_API_KEY`    | API key for the polishing service  | (required)                  |
-| `POLISH_MODEL`      | Model name for text polishing      | (required)                  |
+| Variable            | Description                        | Default                  |
+| ------------------- | ---------------------------------- | ------------------------ |
+| `UPSTREAM_API_BASE` | Upstream API base URL              | `https://api.openai.com` |
+| `POLISH_API_BASE`   | Base URL for the polishing service | (required)               |
+| `POLISH_API_KEY`    | API key for the polishing service  | (required)               |
+| `POLISH_MODEL`      | Model name for text polishing      | (required)               |
 
 ### Test Configuration (Local Development)
 
@@ -33,7 +40,7 @@ A lightweight SSE (Server-Sent Events) proxy server written in TypeScript. It in
 
 ### Prerequisites
 
-- Node.js 24+
+- Bun 1.x
 
 ### Setup
 
@@ -42,16 +49,16 @@ A lightweight SSE (Server-Sent Events) proxy server written in TypeScript. It in
 
 ```bash
 # Upstream API (the API you're proxying to)
-UPSTREAM_API_BASE=https://api.openai.com
+UPSTREAM_API_BASE=https://openrouter.ai/api/v1
 
 # Polishing service (can be same as upstream or different)
-POLISH_API_BASE=https://api.openai.com
+POLISH_API_BASE=https://openrouter.ai/api/v1
 POLISH_API_KEY=sk-your-api-key
-POLISH_MODEL=gpt-4
+POLISH_MODEL=gemini-2.5-flash-lite
 
 # Test configuration
 TEST_API_KEY=sk-your-test-key
-TEST_MODEL=gpt-3.5-turbo
+TEST_MODEL=gpt-5
 TEST_PROMPT="Explain how IPC works in Electron"
 ```
 
@@ -60,13 +67,13 @@ TEST_PROMPT="Explain how IPC works in Electron"
 3. Start the server:
 
 ```bash
-node --experimental-strip-types src/server.ts
+bun src/server.ts
 ```
 
 The server will start on port 8080 by default. You can customize with:
 
 ```bash
-node --experimental-strip-types src/server.ts --port 3000 --expose
+bun src/server.ts --port 3000 --expose
 ```
 
 ### Testing
@@ -74,14 +81,14 @@ node --experimental-strip-types src/server.ts --port 3000 --expose
 Run the SSE test against a running server:
 
 ```bash
-node --experimental-strip-types tests/sse-test.ts 8080
+bun tests/sse-test.ts 8080
 ```
 
 Optional type-check setup:
 
 ```bash
-npm install
-npm run typecheck
+bun i
+bun typecheck
 ```
 
 ## Fly.io Deployment
@@ -104,15 +111,13 @@ This will create a `fly.toml` configuration file. Review and adjust as needed.
 2. **Set secrets** (do not use `.env` file for production):
 
 ```bash
-# Required: Upstream API base URL
-fly secrets set UPSTREAM_API_BASE=https://your-upstream-api.com
+#  Upstream API base URL
+fly secrets set UPSTREAM_API_BASE=https://your-upstream-api.com/v1
 
-# Required: Polishing service configuration
+# Polishing service configuration
+fly secrets set POLISH_API_BASE=https://polish-api.example.com/v1
 fly secrets set POLISH_API_KEY=sk-your-api-key
 fly secrets set POLISH_MODEL=your-model-name
-
-# Optional: If polishing service differs from upstream
-fly secrets set POLISH_API_BASE=https://polish-api.example.com
 ```
 
 **Note**: All configuration on Fly.io is done via `fly secrets`. The `.env.local` file is only for local development and should not be committed or deployed.
@@ -121,30 +126,6 @@ fly secrets set POLISH_API_BASE=https://polish-api.example.com
 
 ```bash
 fly deploy
-```
-
-### Updating Secrets
-
-To update environment variables after deployment:
-
-```bash
-fly secrets set POLISH_API_KEY=sk-new-key
-```
-
-This will redeploy the app with the new secrets.
-
-### Monitoring
-
-View logs:
-
-```bash
-fly logs
-```
-
-Check app status:
-
-```bash
-fly status
 ```
 
 ### Scaling
@@ -158,7 +139,7 @@ fly scale count 1
 Adjust VM resources:
 
 ```bash
-fly scale vm shared-cpu-2x --memory 512
+fly scale vm shared-cpu-1x --memory 256
 ```
 
 ## Configuration Precedence
@@ -189,4 +170,4 @@ The sidecar buffers SSE responses from the upstream API, sends the content to a 
 
 ## License
 
-GPL-2.0-only
+GNU General Public License v2.0
