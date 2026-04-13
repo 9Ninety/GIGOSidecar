@@ -1,5 +1,7 @@
 import {
   REWRITE_PROMPT,
+  USER_LEVEL_INJECT_PROMPT,
+  USER_LEVEL_INJECT_PROMPT_REPLY,
   requireEnv,
 } from "../config.ts";
 import { normalizeBaseUrl } from "../utils/url.ts";
@@ -31,6 +33,14 @@ function buildRewritePayload({
     stream: true,
     messages: [
       { role: "system", content: prompt },
+      {
+        role: "user",
+        content: USER_LEVEL_INJECT_PROMPT,
+      },
+      {
+        role: "assistant",
+        content: USER_LEVEL_INJECT_PROMPT_REPLY,
+      },
       {
         role: "user",
         content: `<text_to_rewrite>\n${input}\n</text_to_rewrite>`,
