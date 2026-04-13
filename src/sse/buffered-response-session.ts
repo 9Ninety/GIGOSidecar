@@ -38,7 +38,6 @@ interface BufferedAnswerState {
 }
 
 interface MockReasoningState {
-  nextTemplateIndex: number;
   timer: NodeJS.Timeout | null;
   watchdog: NodeJS.Timeout | null;
   started: boolean;
@@ -325,7 +324,6 @@ export class BufferedResponseSession {
       envelopeStarted: false,
     };
     this.mockReasoning = {
-      nextTemplateIndex: 0,
       timer: null,
       watchdog: null,
       started: false,
@@ -535,15 +533,11 @@ export class BufferedResponseSession {
       return;
     }
 
-    const template =
-      this.mockTemplates[
-        this.mockReasoning.nextTemplateIndex % this.mockTemplates.length
-      ];
+    const templateIndex = Math.floor(Math.random() * this.mockTemplates.length);
+    const template = this.mockTemplates[templateIndex];
     if (!template) {
       throw new Error("Mock reasoning template lookup failed");
     }
-
-    this.mockReasoning.nextTemplateIndex += 1;
 
     const text = buildReasoningSummaryText(template.title, template.content);
     const outputIndex = this.ensureMockReasoningOutputIndex();
