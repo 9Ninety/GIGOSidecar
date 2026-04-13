@@ -13,7 +13,7 @@ GPT and its ilk have developed a very specific disease:
 - **Bullet-point manifestos**: Taking 500 words to say what needs 50
 - **The confidence trick**: Stating wrong things with absolute certainty, then apologizing in the same breath
 
-GIGO sits between you and the upstream API, buffers the SSE stream, and runs it through a polish layer that strips this garbage out.
+The sidecar sits between you and the upstream API, buffers the SSE stream, and runs it through a polish layer that strips this garbage out.
 
 ## Environment Variables
 
