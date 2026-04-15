@@ -166,6 +166,9 @@ Client → GIGO Sidecar → Upstream API
 
 The sidecar buffers SSE responses from the upstream API, sends the content to a polishing LLM for enhancement, and streams the polished response back to the client with simulated reasoning steps.
 
+## Sponsorship
+[![Linux.do](./assets/linuxdo.png)](https://linux.do/t/topic/1776670)
+
 ## License
 
 GNU General Public License v2.0
